@@ -93,7 +93,7 @@ void stopTimer1()
 int main(void)	
 {
 	
-	GLCD_Initalize();
+	/*GLCD_Initalize();
 	
 	GLCD_ClearScreen();
 	GLCD_GoTo(0,0);
@@ -113,16 +113,18 @@ int main(void)
 	GLCD_GoTo(0,7);
 	GLCD_WriteString(" #      #     ######");
 	
-	initUSART();
-	//initTimer1PWM();
+	initUSART();*/
+	initTimer1PWM();
+	
+	DDRD |= 0xFF;
 	
     /* Replace with your application code */
     while (1) 
     {
 		OCR1A = ICR1 - 800;
-		_delay_ms(1000);
-		OCR1A = ICR1 - 2200;
-		_delay_ms(1000);
+		_delay_ms(2000);
+		OCR1A = ICR1 - 1600;
+		_delay_ms(2000);
 		
 		/*executePing();
 		
