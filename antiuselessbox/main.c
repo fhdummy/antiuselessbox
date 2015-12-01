@@ -15,6 +15,26 @@
 
 double distance = 0;
 
+void initUSART()
+{
+	UBRRH = 0;
+	UBRRL = 51;
+	
+	UCSRB = ((1<<TXEN));
+	
+	UCSRC = ((1<<URSEL) | (1<<UCSZ0) | (1<<UCSZ1));	//Asynchron 8N1
+	UCSRB |= (1 << UDRIE);	//no parity, UMSEL for async operation
+}
+
+void usartTransmit(unsigned char data)
+{
+	while(!(UCSRA & (1 << UDRE)))
+	{
+		
+	}
+	UDR = data;
+}
+
 void executePing()
 {
 	PING_DDR |= (1 << PING_PIN);
@@ -59,10 +79,19 @@ void stopTimer1()
 
 int main(void)	
 {
+	initUSART();
+	
     /* Replace with your application code */
     while (1) 
     {
 		executePing();
+		
+		if(distance <= 30)
+		{
+			usartTransmit('A');
+		}
+		
+		_delay_ms(50);
     }
 }
 
