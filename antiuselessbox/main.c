@@ -10,7 +10,7 @@
 #include <avr/interrupt.h>
 #include "KS0108.h"
 
-#define PING_PIN PD0
+#define PING_PIN PD2
 #define PING_DDR DDRD
 #define PING_OUTPUT_PORT PORTD
 #define PING_INPUT_PORT PIND
@@ -60,15 +60,15 @@ void executePing()
 	{
 		
 	}
-	startTimer1();
+	startTimer0();
 	
 	while(PING_INPUT_PORT & (1 << PING_PIN))	//Wait until the pin is low again
 	{
 		
 	}
-	stopTimer1();
-	distance = TCNT1 * 0.1724;	//Value in microseconds
-	TCNT1 = 0;
+	stopTimer0();
+	distance = TCNT0 * 0.55168;	//Value in microseconds
+	TCNT0 = 0;
 }
 
 void startTimer1()
@@ -90,10 +90,23 @@ void stopTimer1()
 	//TCNT1 = 0;	
 }
 
+void startTimer0()
+{
+	TCCR0 &= ~((1 << WGM01) | (1 << WGM00));	//Normal mode
+	TCCR0 &= ~((1 << COM01) | (1 << COM00));	//Normal port operation
+	TCCR0 |= ((1 << CS02));	//Prescaler 256
+	TCNT0 = 0;
+}
+
+void stopTimer0()
+{
+	TCCR0 &= ~((1 << CS02) | (1 << CS01) | (1 << CS00));
+}
+
 int main(void)	
 {
 	
-	/*GLCD_Initalize();
+	GLCD_Initalize();
 	
 	GLCD_ClearScreen();
 	GLCD_GoTo(0,0);
@@ -113,27 +126,34 @@ int main(void)
 	GLCD_GoTo(0,7);
 	GLCD_WriteString(" #      #     ######");
 	
-	initUSART();*/
-	initTimer1PWM();
+	char distanceString[10];
 	
-	DDRD |= 0xFF;
+	initUSART();
+	//initTimer1PWM();
+	
+	//DDRD |= (1 << PD5);
 	
     /* Replace with your application code */
     while (1) 
     {
-		OCR1A = ICR1 - 800;
+		/*OCR1A = ICR1 - 800;
 		_delay_ms(2000);
 		OCR1A = ICR1 - 1600;
-		_delay_ms(2000);
+		_delay_ms(2000);*/
 		
-		/*executePing();
+		sprintf(distanceString, "%3d", (int)distance);
+		
+		executePing();
+		
+		GLCD_GoTo(15,4);
+		GLCD_WriteString(distanceString);
 		
 		if(distance <= 30)
 		{
 			usartTransmit('A');
 		}
 		
-		_delay_ms(50);*/
+		_delay_ms(50);
     }
 	
 	return 0;
