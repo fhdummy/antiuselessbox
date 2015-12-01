@@ -126,6 +126,15 @@
     </ToolchainSettings>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="font5x8.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="KS0108.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="KS0108.h">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="main.c">
       <SubType>compile</SubType>
     </Compile>

@@ -7,11 +7,13 @@
 
 #include <avr/io.h>
 #include <util/delay.h>
+#include <avr/interrupt.h>
+#include "KS0108.h"
 
-#define PING_PIN PA0
-#define PING_DDR DDRA
-#define PING_OUTPUT_PORT PORTA
-#define PING_INPUT_PORT PINA
+#define PING_PIN PD0
+#define PING_DDR DDRD
+#define PING_OUTPUT_PORT PORTD
+#define PING_INPUT_PORT PIND
 
 double distance = 0;
 
@@ -24,6 +26,17 @@ void initUSART()
 	
 	UCSRC = ((1<<URSEL) | (1<<UCSZ0) | (1<<UCSZ1));	//Asynchron 8N1
 	UCSRB |= (1 << UDRIE);	//no parity, UMSEL for async operation
+}
+
+void initTimer1PWM()
+{
+	/* FastPWM, TOP: OCR1A, Update of OCR1X: BOTTOM, TOV1 Flag Set on: TOP, Prescaler 8 */
+	TCCR1A |= (1 << WGM11);
+	TCCR1B |= (1 << WGM13) | (1 << WGM12) | (1 << CS11);
+	
+	TCCR1A |= ((1 << COM1A1) | (1 << COM1A0));	// Inverted mode
+	
+	ICR1 = 19999;	
 }
 
 void usartTransmit(unsigned char data)
@@ -79,19 +92,47 @@ void stopTimer1()
 
 int main(void)	
 {
+	
+	GLCD_Initalize();
+	
+	GLCD_ClearScreen();
+	GLCD_GoTo(0,0);
+	GLCD_WriteString(" #   #######  ######");
+	GLCD_GoTo(0,1);
+	GLCD_WriteString(" #      #     #     ");
+	GLCD_GoTo(0,2);
+	GLCD_WriteString(" #      #     #     ");
+	GLCD_GoTo(0,3);
+	GLCD_WriteString(" #      #     #_____");
+	GLCD_GoTo(0,4);
+	GLCD_WriteString(" #      #          #");
+	GLCD_GoTo(0,5);
+	GLCD_WriteString(" #      #          #");
+	GLCD_GoTo(0,6);
+	GLCD_WriteString(" #      #          #");
+	GLCD_GoTo(0,7);
+	GLCD_WriteString(" #      #     ######");
+	
 	initUSART();
+	//initTimer1PWM();
 	
     /* Replace with your application code */
     while (1) 
     {
-		executePing();
+		OCR1A = ICR1 - 800;
+		_delay_ms(1000);
+		OCR1A = ICR1 - 2200;
+		_delay_ms(1000);
+		
+		/*executePing();
 		
 		if(distance <= 30)
 		{
 			usartTransmit('A');
 		}
 		
-		_delay_ms(50);
+		_delay_ms(50);*/
     }
+	
+	return 0;
 }
-
