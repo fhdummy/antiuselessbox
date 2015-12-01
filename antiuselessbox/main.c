@@ -13,11 +13,7 @@
 #define PING_OUTPUT_PORT PORTA
 #define PING_INPUT_PORT PINA
 
-unsigned int distance = 0;
-
-void initPing()
-{
-}
+double distance = 0;
 
 void executePing()
 {
@@ -38,7 +34,7 @@ void executePing()
 		
 	}
 	stopTimer1();
-	distance = TCNT1;
+	distance = TCNT1 * 0.1724;	//Value in microseconds
 	TCNT1 = 0;
 }
 
@@ -61,11 +57,8 @@ void stopTimer1()
 	//TCNT1 = 0;	
 }
 
-int main(void)
+int main(void)	
 {
-	initPing();
-	
-	
     /* Replace with your application code */
     while (1) 
     {
