@@ -5,18 +5,108 @@
  * Author : Stefan
  */ 
 
+#include <stdio.h>
 #include <avr/io.h>
 #include <util/delay.h>
 #include <avr/interrupt.h>
 #include "KS0108.h"
 
+/* DEFINES */
 #define PING_PIN PD2
 #define PING_DDR DDRD
 #define PING_OUTPUT_PORT PORTD
 #define PING_INPUT_PORT PIND
+#define SERVO_PIN PD5
 
+/* GLOBAL VARIABLES */
 double distance = 0;
 int countGlobal = 0;
+
+/* PROTOTYPES */
+void initUSART();
+void initTimer1PWM();
+void initServo();
+void usartTransmit(unsigned char);
+void executePing();
+void startTimer0();
+void stopTimer0();
+
+/* MAIN FUNCTION */
+int main(void)	
+{
+	/* Variables */
+	char distanceString[10];
+	unsigned char enableServo = 0;
+	unsigned char toggleDirection = 0;
+	
+	GLCD_Initalize();
+	
+	GLCD_ClearScreen();
+	GLCD_GoTo(0,0);
+	GLCD_WriteString(" #   #######  ######");
+	GLCD_GoTo(0,1);
+	GLCD_WriteString(" #      #     #     ");
+	GLCD_GoTo(0,2);
+	GLCD_WriteString(" #      #     #     ");
+	GLCD_GoTo(0,3);
+	GLCD_WriteString(" #      #     #_____");
+	GLCD_GoTo(0,4);
+	GLCD_WriteString(" #      #          #");
+	GLCD_GoTo(0,5);
+	GLCD_WriteString(" #      #          #");
+	GLCD_GoTo(0,6);
+	GLCD_WriteString(" #      #          #");
+	GLCD_GoTo(0,7);
+	GLCD_WriteString(" #      #     ######");
+	
+	initUSART();
+	initTimer1PWM();
+	initServo();
+	
+    while (1) 
+    {
+		sprintf(distanceString, "%3d", (int)distance);	//Convert integer to char array
+		
+		executePing();	//Make distant measurement
+		
+		/* Write distance to GLCD */
+		GLCD_GoTo(15,3);
+		GLCD_WriteString(distanceString);
+		
+		if(distance <= 15)
+		{
+			enableServo = 1;
+			usartTransmit('A');
+		}
+		
+		if(enableServo == 1)
+		{
+			if(countGlobal >= 20)	//Only execute this function every seconds
+			{
+				if(toggleDirection == 0) 
+				{
+					OCR1A = ICR1 - 800;	//Position 1 of the servo
+					toggleDirection = 1;
+				}				
+				else if(toggleDirection == 1) 
+				{
+					OCR1A = ICR1 - 1600;	//Position 2 of the servo
+					toggleDirection = 0;
+				}
+				
+				countGlobal = 0;
+			}
+			
+			enableServo = 0;
+		}
+		
+		_delay_ms(50);
+		
+		countGlobal++;	//Increment count variable
+    }
+	
+	return 0;
+}
 
 void initUSART()
 {
@@ -37,7 +127,12 @@ void initTimer1PWM()
 	
 	TCCR1A |= ((1 << COM1A1) | (1 << COM1A0));	// Inverted mode
 	
-	ICR1 = 19999;	
+	ICR1 = 19999;
+}
+
+void initServo()
+{
+	DDRD |= (1 << SERVO_PIN);
 }
 
 void usartTransmit(unsigned char data)
@@ -68,7 +163,7 @@ void executePing()
 		
 	}
 	stopTimer0();
-	distance = TCNT0 * 0.55168;	//Value in microseconds
+	distance = TCNT0 * 0.55168;	//Value in centimeter
 	TCNT0 = 0;
 }
 
@@ -83,98 +178,4 @@ void startTimer0()
 void stopTimer0()
 {
 	TCCR0 &= ~((1 << CS02) | (1 << CS01) | (1 << CS00));
-}
-
-void initTimer2()
-{
-	TCCR2 &= ~((1 << WGM21) | (1 << WGM20));	//Normal mode
-	TCCR2 &= ~((1 << COM21) | (1 << COM20));	//Normal port operation
-	
-	TCCR2 |= ((1 << CS22) | (1 << CS21) | (1 << CS20));
-	
-	TIMSK |= (1 << TOIE2);	//Timer 2 Overflow Interrupt Enable
-}
-
-int main(void)	
-{
-	
-	GLCD_Initalize();
-	
-	GLCD_ClearScreen();
-	GLCD_GoTo(0,0);
-	GLCD_WriteString(" #   #######  ######");
-	GLCD_GoTo(0,1);
-	GLCD_WriteString(" #      #     #     ");
-	GLCD_GoTo(0,2);
-	GLCD_WriteString(" #      #     #     ");
-	GLCD_GoTo(0,3);
-	GLCD_WriteString(" #      #     #_____");
-	GLCD_GoTo(0,4);
-	GLCD_WriteString(" #      #          #");
-	GLCD_GoTo(0,5);
-	GLCD_WriteString(" #      #          #");
-	GLCD_GoTo(0,6);
-	GLCD_WriteString(" #      #          #");
-	GLCD_GoTo(0,7);
-	GLCD_WriteString(" #      #     ######");
-	
-	char distanceString[10];
-	
-	unsigned char enableServo = 0;
-	unsigned char toggleDirection = 0;
-	
-	initUSART();
-	initTimer2();
-	//sei();
-	initTimer1PWM();
-	
-	DDRD |= (1 << PD5);
-	
-    /* Replace with your application code */
-    while (1) 
-    {
-		/*OCR1A = ICR1 - 800;
-		_delay_ms(2000);
-		OCR1A = ICR1 - 1600;
-		_delay_ms(2000);*/
-		
-		sprintf(distanceString, "%3d", (int)distance);
-		
-		executePing();
-		
-		GLCD_GoTo(15,4);
-		GLCD_WriteString(distanceString);
-		
-		if(distance <= 15)
-		{
-			enableServo = 1;
-			usartTransmit('A');
-		}
-		
-		if(enableServo == 1)
-		{
-			if(countGlobal >= 20)
-			{
-				if(toggleDirection == 0) 
-				{
-					OCR1A = ICR1 - 800;
-					toggleDirection = 1;
-				}				
-				else if(toggleDirection == 1) 
-				{
-					OCR1A = ICR1 - 1600;
-					toggleDirection = 0;
-				}
-				
-				countGlobal = 0;
-			}
-			
-			enableServo = 0;
-		}
-		
-		_delay_ms(50);
-		countGlobal++;
-    }
-	
-	return 0;
 }
