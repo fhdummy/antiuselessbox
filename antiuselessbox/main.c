@@ -16,6 +16,7 @@
 #define PING_INPUT_PORT PIND
 
 double distance = 0;
+int countGlobal = 0;
 
 void initUSART()
 {
@@ -71,25 +72,6 @@ void executePing()
 	TCNT0 = 0;
 }
 
-void startTimer1()
-{
-	//Normal-Mode
-	TCCR1A &= ~((1 << WGM10) | (1 << WGM11));
-	TCCR1B &= ~((1 << WGM12) | (1 << WGM13));
-		
-	//Prescaler 64
-	TCCR1B |= ((1 << CS10) | (1 << CS11));
-	TCCR1B &= ~((1 << CS12));
-		
-	TCNT1 = 0;
-}
-
-void stopTimer1()
-{
-	TCCR1B &= ~((1 << CS10) | (1 << CS11) | (1 << CS12));	//Stop the timer
-	//TCNT1 = 0;	
-}
-
 void startTimer0()
 {
 	TCCR0 &= ~((1 << WGM01) | (1 << WGM00));	//Normal mode
@@ -101,6 +83,16 @@ void startTimer0()
 void stopTimer0()
 {
 	TCCR0 &= ~((1 << CS02) | (1 << CS01) | (1 << CS00));
+}
+
+void initTimer2()
+{
+	TCCR2 &= ~((1 << WGM21) | (1 << WGM20));	//Normal mode
+	TCCR2 &= ~((1 << COM21) | (1 << COM20));	//Normal port operation
+	
+	TCCR2 |= ((1 << CS22) | (1 << CS21) | (1 << CS20));
+	
+	TIMSK |= (1 << TOIE2);	//Timer 2 Overflow Interrupt Enable
 }
 
 int main(void)	
@@ -128,10 +120,15 @@ int main(void)
 	
 	char distanceString[10];
 	
-	initUSART();
-	//initTimer1PWM();
+	unsigned char enableServo = 0;
+	unsigned char toggleDirection = 0;
 	
-	//DDRD |= (1 << PD5);
+	initUSART();
+	initTimer2();
+	//sei();
+	initTimer1PWM();
+	
+	DDRD |= (1 << PD5);
 	
     /* Replace with your application code */
     while (1) 
@@ -148,12 +145,35 @@ int main(void)
 		GLCD_GoTo(15,4);
 		GLCD_WriteString(distanceString);
 		
-		if(distance <= 30)
+		if(distance <= 15)
 		{
+			enableServo = 1;
 			usartTransmit('A');
 		}
 		
+		if(enableServo == 1)
+		{
+			if(countGlobal >= 20)
+			{
+				if(toggleDirection == 0) 
+				{
+					OCR1A = ICR1 - 800;
+					toggleDirection = 1;
+				}				
+				else if(toggleDirection == 1) 
+				{
+					OCR1A = ICR1 - 1600;
+					toggleDirection = 0;
+				}
+				
+				countGlobal = 0;
+			}
+			
+			enableServo = 0;
+		}
+		
 		_delay_ms(50);
+		countGlobal++;
     }
 	
 	return 0;
