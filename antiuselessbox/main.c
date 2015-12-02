@@ -39,6 +39,7 @@ int main(void)
 	unsigned char enableServo = 0;
 	unsigned char toggleDirection = 0;
 	
+	_delay_ms(50);
 	GLCD_Initalize();
 	
 	GLCD_ClearScreen();
